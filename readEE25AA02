@@ -1,14 +1,7 @@
 #!/usr/bin/php -q
 <?
-# user running this program must be a member of GPIO group
+/* GPIO pins that SPI EEPROM is connected to */
 $pins=array('EE_NCS'=>23,'EE_SCK'=>22,'EE_SI'=>7,'EE_SO'=>24);
-
-function _exec($cmd) {
-//	printf("executing: %s\n",$cmd);
-	$result=exec($cmd);
-//	printf("returning: %s\n",$result);
-	return $result;
-}
 
 function input_bit($gpio) {
 	/* fastest read */
@@ -29,31 +22,26 @@ function bit_test($var, $bit) {
 }
 
 function spi_read_bytes($pins,$startAddress, $nBytes) {
-	printf("# reading %d bytes starting from address %s\n",$nBytes,$startAddress);
 	/* select chip */
-	printf("# selecting chip\n");
 	output_bit($pins['EE_NCS'],0);
 
-	/* send read instruction 0b0000 x011 */
-	printf("# sending read instruction\n");
+	/* send read instruction 0b0000 x011 per datasheet table 2-1 */
 	$byte=0x03;
-	for ( $i=0 ; $i<8 ; $i++ ) {
-		output_bit($pins['EE_SI'],bit_test($byte,7-$i));
+	for ( $i=7 ; $i>=0 ; $i-- ) {
+		output_bit($pins['EE_SI'],bit_test($byte,$i));
 		output_bit($pins['EE_SCK'],1);
 		output_bit($pins['EE_SCK'],0);
 	}
 
 	/* start address */
-	printf("# sending start address\n");
-	for ( $i=0 ; $i<8 ; $i++ ) {
-		output_bit($pins['EE_SI'],bit_test($startAddress,7-$i));
+	for ( $i=7 ; $i>=0 ; $i-- ) {
+		output_bit($pins['EE_SI'],bit_test($startAddress,$i));
 		output_bit($pins['EE_SCK'],1);
 		output_bit($pins['EE_SCK'],0);
 	}
 
 	/* read nBytes * 8 bits */
 	$data=array();
-	printf("# reading %d bytes\n",$nBytes);
 	for ( $i=0 ; $i<$nBytes ; $i++ ) {
 		$data[$i]=0x00;
 		for ( $j=7 ; $j>=0 ; $j-- ) {
@@ -70,17 +58,20 @@ function spi_read_bytes($pins,$startAddress, $nBytes) {
 	return $data;
 }
 
-function spi_init($pins) {
-	foreach ($pins as $key => $value) {
-		printf("# Exporting %s (GPIO %d)\n",$key,$value);
-		_exec(sprintf("echo %d > /sys/class/gpio/export",$value));
-	}
+function setup_pin($gpio,$direction) {
+	file_put_contents("/sys/class/gpio/export",$gpio);
+	file_put_contents("/sys/class/gpio/gpio" . $gpio . "/direction",$direction);
+}
 
-	/* set directions */
-	_exec(sprintf("echo out > /sys/class/gpio/gpio%d/direction",$pins['EE_NCS']));
-	_exec(sprintf("echo out > /sys/class/gpio/gpio%d/direction",$pins['EE_SCK']));
-	_exec(sprintf("echo out > /sys/class/gpio/gpio%d/direction",$pins['EE_SI']));
-	_exec(sprintf("echo in > /sys/class/gpio/gpio%d/direction",$pins['EE_SO']));
+function destroy_pin($gpio) {
+	file_put_contents("/sys/class/gpio/unexport",$gpio);
+}
+
+function spi_init($pins) {
+	setup_pin($pins['EE_NCS'],"out");
+	setup_pin($pins['EE_SCK'],"out");
+	setup_pin($pins['EE_SI'],"out");
+	setup_pin($pins['EE_SO'],"in");
 
 	/* de-select chip */
 	output_bit($pins['EE_NCS'],1);
@@ -90,10 +81,10 @@ function spi_disconnect($pins) {
 	/* de-select chip */
 	output_bit($pins['EE_NCS'],1);
 
-	foreach ($pins as $key => $value) {
-		printf("# unexporting %s (GPIO %d)\n",$key,$value);
-		_exec(sprintf("echo %d > /sys/class/gpio/unexport",$value));
-	}
+	destroy_pin($pins['EE_NCS']);
+	destroy_pin($pins['EE_SCK']);
+	destroy_pin($pins['EE_SI']);
+	destroy_pin($pins['EE_SO']);
 }
 
 spi_init($pins);
