@@ -12,13 +12,15 @@ function _exec($cmd) {
 
 function input_bit($gpio) {
 	$val=trim(_exec(sprintf("cat /sys/class/gpio/gpio%d/value",$gpio)));	
+
 	return $val;
 }
 
 function output_bit($gpio, $value) {
 	$value = $value & 1;
-	$cmd=sprintf("echo %d > /sys/class/gpio/gpio%d/value",$value,$gpio);
-	_exec($cmd);
+
+	/* fastest write */
+	file_put_contents("/sys/class/gpio/gpio" . $gpio . "/value",$value);
 }
 
 function bit_test($var, $bit) {
