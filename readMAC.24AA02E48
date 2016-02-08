@@ -1,10 +1,10 @@
 #!/bin/bash
 echo "Attempting to read MAC address (EUI-48) from I2C EEPROM ... "
-sudo modprobe i2c-dev
+modprobe i2c-dev
 # Exit immediately if any part of pipe fails
 set -o pipefail
 # read EEPROM and pull out relevant bytes that are MAC address
-sudo i2cdump -y 1 0x50 i | grep f0: | cut -c 35-51 | sed 's/ /:/g'
+i2cdump -y 1 0x50 i | grep f0: | cut -c 35-51 | sed 's/ /:/g'
 if [ "$?" -ne "0" ]; then
   echo "failed"
   exit 1

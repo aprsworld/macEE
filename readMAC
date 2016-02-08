@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# first try SPI EEPROM
+MAC=`sudo ./readMAC.25AA02E48`
+if [ "$?" -eq "0" ]; then
+	echo $MAC
+  	exit 0
+fi
+
+# then try I2C EEPROM
+MAC=`sudo ./readMAC.24AA02E48`
+if [ "$?" -eq "0" ]; then
+	echo $MAC
+  	exit 0
+fi
+
+# then go with default
+echo "00:00:00:12:34:56"
+exit 1
