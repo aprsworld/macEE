@@ -11,7 +11,8 @@ function _exec($cmd) {
 }
 
 function input_bit($gpio) {
-	$val=trim(_exec(sprintf("cat /sys/class/gpio/gpio%d/value",$gpio)));	
+	/* fastest read */
+	$val=file_get_contents("/sys/class/gpio/gpio" . $gpio . "/value",FALSE,NULL,0,1);
 
 	return $val;
 }
