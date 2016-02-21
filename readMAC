@@ -8,6 +8,14 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
+# see if we have an ENC28J60 network card. Only way I have figured
+# out is to look in /proc/irq for an enc28j60 entry. lsmod will show
+# enc28j60 as not used, even when that interface is available
+IRQ=`find /proc/irq | grep enc28j60`
+if [ "$?" -ne "0" ]; then
+  	exit 2
+fi
+
 # first try SPI EEPROM
 MAC=`readMAC.25AA02E48`
 if [ "$?" -eq "0" ]; then
