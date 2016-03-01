@@ -13,6 +13,8 @@ fi
 # enc28j60 as not used, even when that interface is available
 IRQ=`find /proc/irq | grep enc28j60`
 if [ "$?" -ne "0" ]; then
+	# return eth0's existing HWaddr
+	echo `ifconfig eth0 | grep HWaddr | cut -c 39-55`
   	exit 2
 fi
 
